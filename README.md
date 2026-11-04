@@ -292,20 +292,6 @@ jupyter notebook notebooks/01_h2_bond_scan.ipynb
 
 ---
 
-## Citing
-
-If you use `vqe-bench` in your research, please cite:
-
-```bibtex
-@software{vqe_bench,
-  author = {Zitouni, Nidhal},
-  title  = {vqe-bench: Variational Quantum Eigensolver Benchmark Suite},
-  year   = {2026},
-  url    = {https://github.com/ZitouniNidhal/vqe-bench}
-}
-```
-
----
 
 ## License
 
