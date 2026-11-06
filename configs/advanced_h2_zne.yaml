@@ -1,0 +1,36 @@
+experiment:
+  name: "advanced_h2_zne"
+  seed: 42
+  output_dir: "results/advanced_h2_zne"
+  telemetry: true
+
+system:
+  type: molecule
+  molecule:
+    name: "H2"
+    basis: "sto-3g"
+    geometry: [["H", [0.0, 0.0, 0.0]], ["H", [0.0, 0.0, 0.735]]]
+    mapping: parity
+    tapering: true
+
+ansatz:
+  type: uccsd
+
+optimizer:
+  method: cobyla
+  maxiter: 500
+  early_stopping: false
+
+backend:
+  type: aer_qasm
+  shots: 4096
+  noise:
+    type: depolarising
+    p_single: 0.001
+    p_two: 0.02
+
+mitigation:
+  type: zne
+  scaling_factors: [1.0, 3.0, 5.0]
+  folding: global
+  extrapolation: richardson
