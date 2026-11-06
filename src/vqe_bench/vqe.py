@@ -1,23 +1,25 @@
-"""VQE driver loop."""
+"""Production-grade VQE driver loop with validation and logging."""
 
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from typing import Callable, Optional, Any
 
 import numpy as np
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp, Statevector
-
-try:
-    from qiskit_aer import AerSimulator
-    from qiskit_aer.primitives import Estimator as AerEstimator
-    _HAS_AER = True
-except Exception:
-    _HAS_AER = False
 
 from vqe_bench.ansatze.base import BaseAnsatz
 from vqe_bench.optimizers.base import BaseOptimizer
+from vqe_bench.utils.logger import setup_logger
+from vqe_bench.utils.validation import (
+    validate_ansatz_compatibility,
+    validate_hamiltonian,
+    validate_parameters,
+)
+
+logger = setup_logger("VQE")
 
 
 @dataclass
@@ -32,9 +34,11 @@ class VQEResult:
     ansatz_params: int = 0
     ansatz_depth: int = 0
     two_qubit_gates: int = 0
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 def _statevector_energy(qc: QuantumCircuit, op: SparsePauliOp, params: np.ndarray) -> float:
+    """Evaluate expectation value using exact statevector simulation."""
     bound = qc.assign_parameters(dict(zip(qc.parameters, params, strict=True)))
     sv = Statevector.from_instruction(bound)
     return float(np.real(sv.expectation_value(op)))
@@ -45,53 +49,76 @@ def run_vqe(
     ansatz: BaseAnsatz,
     optimizer: BaseOptimizer,
     seed: int = 42,
-    backend_type: str = "aer_statevector",
-    shots: int | None = None,
-    noise_model=None,
+    callback: Optional[Callable[[int, np.ndarray, float], None]] = None,
 ) -> VQEResult:
-    """Run VQE and return a structured result."""
+    """Run the VQE algorithm with full validation and logging.
+    
+    Args:
+        hamiltonian_data: Dict containing 'qubit_op' and 'fci_energy'.
+        ansatz: Parameterized quantum circuit.
+        optimizer: Classical optimizer wrapper.
+        seed: Random seed for reproducibility.
+        callback: Optional function called on each energy evaluation.
+    """
     op: SparsePauliOp = hamiltonian_data["qubit_op"]
     reference: float = hamiltonian_data["fci_energy"]
     qc = ansatz.circuit
 
-    rng = np.random.default_rng(seed)
+    # 1. Validation
+    validate_hamiltonian(op)
+    validate_ansatz_compatibility(qc, op)
+    
     n_params = ansatz.num_parameters
+    if n_params == 0:
+        raise ValueError("Ansatz has no trainable parameters.")
+        
+    rng = np.random.default_rng(seed)
     x0 = rng.uniform(-np.pi, np.pi, size=n_params)
+    validate_parameters(x0, n_params)
 
-    if backend_type == "aer_qasm" and _HAS_AER and shots is not None:
-        simulator = AerSimulator(noise_model=noise_model)
-        estimator = AerEstimator(
-            backend_options={"method": "statevector", "noise_model": noise_model},
-            run_options={"shots": shots},
-        )
+    logger.info(f"Starting VQE: {n_params} params, {qc.num_qubits} qubits")
 
-        def cost_fn(params: np.ndarray) -> float:
-            bound = qc.assign_parameters(dict(zip(qc.parameters, params, strict=True)))
-            bound = transpile(bound, simulator, optimization_level=0)
-            try:
-                result = estimator.run([(bound, op)]).result()
-                return float(result[0].data.evs)
-            except Exception:
-                return _statevector_energy(qc, op, params)
+    # 2. Wrap cost function to track history and callbacks
+    eval_count = 0
+    history: list[float] = []
 
-    else:
+    def tracked_cost(params: np.ndarray) -> float:
+        nonlocal eval_count
+        energy = _statevector_energy(qc, op, params)
+        history.append(energy)
+        eval_count += 1
+        
+        if callback:
+            callback(eval_count, params, energy)
+            
+        return energy
 
-        def cost_fn(params: np.ndarray) -> float:
-            return _statevector_energy(qc, op, params)
-
+    # 3. Optimization
     t0 = time.perf_counter()
-    opt_result = optimizer.minimize(cost_fn, x0)
+    try:
+        opt_result = optimizer.minimize(tracked_cost, x0)
+    except Exception as e:
+        logger.error(f"Optimization failed: {e}")
+        raise
     wall = time.perf_counter() - t0
+
+    # 4. Final metrics
+    error = abs(opt_result.optimal_energy - reference)
+    logger.info(
+        f"VQE finished: E = {opt_result.optimal_energy:.6f} Ha | "
+        f"Error = {error:.2e} Ha | Time = {wall:.2f}s"
+    )
 
     return VQEResult(
         optimal_energy=opt_result.optimal_energy,
         optimal_params=opt_result.optimal_params,
-        error_vs_fci=abs(opt_result.optimal_energy - reference),
-        num_function_evaluations=opt_result.num_function_evaluations,
+        error_vs_fci=error,
+        num_function_evaluations=eval_count,
         wall_time=wall,
         converged=opt_result.converged,
-        history=opt_result.history,
+        history=history,
         ansatz_params=ansatz.num_parameters,
         ansatz_depth=ansatz.depth,
         two_qubit_gates=ansatz.two_qubit_gate_count,
+        metadata={"seed": seed, "optimizer": optimizer.__class__.__name__},
     )
