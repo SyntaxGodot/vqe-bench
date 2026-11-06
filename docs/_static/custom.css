@@ -1,0 +1,19 @@
+/* vqe-bench custom Sphinx styles */
+.wy-side-nav-search {
+    background-color: #2980b9;
+}
+
+.wy-nav-top {
+    background-color: #2980b9;
+}
+
+.rst-content code.literal {
+    color: #c0392b;
+    background-color: #f8f8f8;
+    border-radius: 3px;
+    padding: 0.1em 0.3em;
+}
+
+.rst-content .admonition {
+    border-radius: 6px;
+}
