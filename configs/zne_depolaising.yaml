@@ -1,0 +1,38 @@
+experiment:
+  name: "h2_depolarising_zne"
+  seed: 42
+  output_dir: "results/h2_zne"
+
+system:
+  type: molecule
+  molecule:
+    name: "H2"
+    basis: "sto-3g"
+    geometry: [["H", [0.0, 0.0, 0.0]], ["H", [0.0, 0.0, 0.735]]]
+    charge: 0
+    multiplicity: 1
+    mapping: jordan_wigner
+    tapering: false
+
+ansatz:
+  type: hardware_efficient
+  depth: 1
+  entanglement: linear
+
+optimizer:
+  method: cobyla
+  maxiter: 300
+
+backend:
+  type: aer_qasm
+  shots: 2048
+  noise:
+    type: depolarising
+    p_single: 0.001
+    p_two: 0.02
+
+mitigation:
+  type: zne
+  scaling_factors: [1.0, 3.0, 5.0]
+  folding: global
+  extrapolation: richardson
