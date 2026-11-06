@@ -1,0 +1,2 @@
+[console_scripts]
+vqe-bench = vqe_bench.cli.main:main

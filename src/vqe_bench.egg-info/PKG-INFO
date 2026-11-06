@@ -1,0 +1,334 @@
+Metadata-Version: 2.4
+Name: vqe-bench
+Version: 0.1.0
+Summary: Variational Quantum Eigensolver Benchmark Suite
+Author: Nidhal Zitouni
+License: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: qiskit<2.0,>=1.3
+Requires-Dist: qiskit-aer>=0.14
+Requires-Dist: numpy>=1.24
+Requires-Dist: scipy>=1.11
+Requires-Dist: pydantic>=2.5
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: matplotlib>=3.8
+Requires-Dist: pandas>=2.1
+Requires-Dist: tqdm>=4.66
+Provides-Extra: chemistry
+Requires-Dist: qiskit-nature<0.8,>=0.7; extra == "chemistry"
+Requires-Dist: pyscf>=2.4; extra == "chemistry"
+Provides-Extra: mitiq
+Requires-Dist: mitiq>=0.40; extra == "mitiq"
+Provides-Extra: docs
+Requires-Dist: sphinx>=7.0; extra == "docs"
+Requires-Dist: sphinx-rtd-theme>=2.0; extra == "docs"
+Requires-Dist: myst-parser>=2.0; extra == "docs"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4; extra == "dev"
+Requires-Dist: pytest-cov>=4.1; extra == "dev"
+Requires-Dist: ruff>=0.4; extra == "dev"
+Requires-Dist: mypy>=1.8; extra == "dev"
+Requires-Dist: jupyter>=1.0; extra == "dev"
+Requires-Dist: ipykernel>=6.29; extra == "dev"
+Dynamic: license-file
+
+# vqe-bench
+
+**Variational Quantum Eigensolver Benchmark Suite** — a reproducible, publication-quality framework for comparing VQE ansätze, optimisers, and error-mitigation strategies on small molecules and quantum spin models.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![Qiskit](https://img.shields.io/badge/Qiskit-%E2%89%A51.3%2C%3C2.0-6133BD.svg)](https://qiskit.org/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](https://mypy-lang.org/)
+[![CI](https://github.com/ZitouniNidhal/vqe-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/ZitouniNidhal/vqe-bench/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A590%25-brightgreen.svg)](./tests)
+
+---
+
+## Table of contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Repository structure](#repository-structure)
+- [Expected results](#expected-results)
+- [Running tests](#running-tests)
+- [Examples](#examples)
+- [Roadmap](#roadmap)
+- [Citing](#citing)
+- [License](#license)
+
+---
+
+## Overview
+
+`vqe-bench` answers practical questions that VQE practitioners face daily:
+
+| Question | Benchmark in this suite |
+|---|---|
+| *Which ansatz reaches chemical accuracy with the fewest two-qubit gates?* | Hardware-efficient vs. UCCSD vs. ADAPT-VQE — energy error vs. circuit depth |
+| *Which classical optimiser converges fastest, and how seed-sensitive is it?* | COBYLA / SPSA / L-BFGS-B — convergence curves, function evaluations, wall time, success rate across seeds |
+| *Do barren plateaus kill my ansatz at this scale?* | Gradient variance (exact parameter-shift rule) vs. qubits and depth, global vs. local cost functions, log-log fits |
+| *How much does zero-noise extrapolation help under realistic noise?* | Configurable depolarising / T1–T2 thermal / readout noise — mitigated vs. unmitigated energies with linear, Richardson, and exponential extrapolation |
+
+All experiments are **declarative** (one YAML file per experiment), **seeded and reproducible**, and produce **JSON/CSV results plus publication-quality figures** automatically.
+
+### Systems benchmarked
+
+- **Molecules**: H₂, LiH, BeH₂ (STO-3G) — equilibrium and bond-length scans, Jordan–Wigner and Parity mappings with Z₂ qubit tapering; FCI reference energies.
+- **Spin models**: transverse-field Ising chain (TFIM) and Heisenberg XXZ chain, 4–10 qubits, open and periodic boundary conditions; exact-diagonalisation reference energies.
+
+---
+
+## Features
+
+### 1. Ansätze (`vqe_bench.ansatze`)
+- **Hardware-efficient** — configurable depth and entanglement pattern (`linear`, `circular`, `full`, `sca`).
+- **UCCSD** — via Qiskit Nature's `UCCSD`, with Parity mapping + two-qubit reduction.
+- **ADAPT-VQE** — greedy operator-pool growth using exact parameter-shift gradients and a configurable convergence threshold.
+- Every ansatz reports **parameter count, circuit depth, and two-qubit gate count**.
+
+### 2. Optimisers (`vqe_bench.optimizers`)
+- **COBYLA**, **SPSA**, **L-BFGS-B** behind one common interface.
+- Per-iteration logging: energy, number of function evaluations, wall time.
+- Multi-seed restarts with aggregated success statistics.
+
+### 3. Metrics (`vqe_bench.metrics`)
+- Absolute / relative energy error vs. exact (FCI) reference.
+- Chemical accuracy check (1.6 mHa).
+- Energy error vs. circuit depth; convergence curves; success rate across seeds.
+
+### 4. Barren-plateau diagnostics (`vqe_bench.diagnostics`)
+- **Exact gradients via the parameter-shift rule** (no finite-difference noise).
+- Gradient variance vs. number of qubits and depth for **global and local** cost functions.
+- Log-scale fits and publication-quality plots.
+
+### 5. Noise & error mitigation (`vqe_bench.noise`, `vqe_bench.mitigation`)
+- Configurable noise model: depolarising, thermal relaxation (T₁/T₂), readout error.
+- **Zero-noise extrapolation (ZNE)** with global and local unitary folding.
+- Linear, Richardson, and exponential extrapolation factories.
+- Compare mitigated vs. unmitigated energies side by side. *(Custom, deterministic implementation — no Mitiq dependency required.)*
+
+### 6. Benchmark runner & CLI
+```bash
+vqe-bench run --config configs/h2_uccsd.yaml
+```
+Saves results to JSON/CSV and generates all figures automatically.
+
+---
+
+## Installation
+
+**Requirements**: Python ≥ 3.10, Git.
+
+```bash
+# 1. Clone
+git clone https://github.com/ZitouniNidhal/vqe-bench.git
+cd vqe-bench
+
+# 2. (Recommended) create a virtual environment
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
+# 3. Install with chemistry support and dev tools
+pip install -e ".[dev,chemistry]"
+```
+
+### Optional extras
+
+| Extra | Purpose |
+|---|---|
+| `chemistry` | `qiskit-nature` + `pyscf` (molecular Hamiltonians — required for H₂/LiH/BeH₂ benchmarks) |
+| `mitiq` | Cross-check ZNE results against Mitiq |
+| `docs` | Build the Sphinx documentation |
+| `dev` | `pytest`, `ruff`, `mypy`, `jupyter` |
+
+> **Note on versions:** `vqe-bench` pins `qiskit >=1.3, <2.0` and `qiskit-nature >=0.7, <0.8`. Qiskit 2.x removed `qiskit.algorithms`, so this suite implements its own VQE driver loop — giving full control over logging and immunity to that deprecation.
+
+---
+
+## Quick start
+
+### Run your first benchmark (H₂, UCCSD, COBYLA)
+
+```bash
+vqe-bench run --config configs/h2_uccsd.yaml
+```
+
+Expected console output:
+
+```
+[vqe-bench] Experiment : h2_uccsd_sto3g
+[vqe-bench] System     : H2 / sto-3g (parity mapping, tapering)
+[vqe-bench] Ansatz     : uccsd (2 parameters)
+[vqe-bench] Reference  : -1.1373060 Ha (FCI)
+[vqe-bench] Optimizer  : cobyla (seed=42, maxiter=500)
+[vqe-bench] Converged  : energy = -1.1373060 Ha  |ΔE| = 3.1e-09 Ha  ✓ chemical accuracy
+[vqe-bench] Results    → results/h2_uccsd/results.json, results.csv
+[vqe-bench] Figures    → results/h2_uccsd/fig_convergence.png
+```
+
+### From Python
+
+```python
+from vqe_bench.hamiltonians.molecules import build_molecule_hamiltonian
+from vqe_bench.ansatze.uccsd import UCCSDAnsatz
+from vqe_bench.optimizers.scipy_optimizers import CobylaOptimizer
+from vqe_bench.vqe import run_vqe
+
+h2 = build_molecule_hamiltonian("H2", basis="sto-3g",
+                                geometry=[("H", (0, 0, 0)), ("H", (0, 0, 0.735))],
+                                mapping="parity", tapering=True)
+ansatz = UCCSDAnsatz(h2)
+result = run_vqe(h2, ansatz, CobylaOptimizer(maxiter=500), seed=42)
+print(result.optimal_energy, result.error_vs_fci)
+```
+
+---
+
+## Configuration
+
+Every experiment is one YAML file. See [`configs/`](./configs) for nine ready-to-run examples.
+
+```yaml
+# configs/h2_uccsd.yaml
+experiment:
+  name: "h2_uccsd_sto3g"
+  seed: 42
+  output_dir: "results/h2_uccsd"
+
+system:
+  type: molecule
+  molecule:
+    name: "H2"
+    basis: "sto-3g"
+    geometry: [["H", [0.0, 0.0, 0.0]], ["H", [0.0, 0.0, 0.735]]]
+    charge: 0
+    multiplicity: 1
+    mapping: parity          # jordan_wigner | parity
+    tapering: true           # Z2 qubit tapering (parity mapping)
+
+ansatz:
+  type: uccsd                # hardware_efficient | uccsd | adapt
+
+optimizer:
+  method: cobyla             # cobyla | spsa | lbfgsb
+  maxiter: 500
+  num_restarts: 5
+
+backend:
+  type: aer_statevector      # aer_statevector | aer_qasm
+  noise: null
+
+mitigation: null             # or: zne with scaling_factors / folding / extrapolation
+```
+
+Configs are validated with **pydantic** — unknown keys are rejected, cross-field rules are enforced (e.g. shots required for `aer_qasm`, ZNE scaling factors must start at 1.0).
+
+---
+
+## Repository structure
+
+```
+vqe-bench/
+├── configs/                  # one YAML per experiment (9 examples)
+├── src/vqe_bench/
+│   ├── hamiltonians/         # molecules (PySCF) + spin models + exact diagonalisation
+│   ├── ansatze/              # hardware-efficient, UCCSD, ADAPT-VQE
+│   ├── optimizers/           # COBYLA, SPSA, L-BFGS-B (unified interface)
+│   ├── metrics/              # energy errors, chemical accuracy, success rate
+│   ├── diagnostics/          # parameter-shift gradients, gradient variance
+│   ├── noise/                # depolarising / T1-T2 / readout noise models
+│   ├── mitigation/           # unitary folding + ZNE factories
+│   ├── visualization/        # publication-quality figures
+│   ├── cli/                  # `vqe-bench run`
+│   ├── vqe.py                # VQE driver loop
+│   └── runner.py             # config → experiments → results
+├── tests/                    # unit tests for every module
+├── examples/                 # runnable Python scripts
+├── notebooks/                # 4 tutorial notebooks
+└── docs/                     # Sphinx documentation
+```
+
+---
+
+## Expected results
+
+Representative results (STO-3G, seed = 42, noiseless, statevector backend):
+
+| System | Ansatz | Params | 2Q gates | Depth | Optimiser | Energy error vs. FCI | Chem. accuracy (1.6 mHa) |
+|---|---|---:|---:|---:|---|---:|:---:|
+| H₂ (0.735 Å) | UCCSD | 2 | ~6 | ~10 | COBYLA | **< 1e-6 Ha** | ✓ |
+| H₂ (0.735 Å) | Hardware-efficient (d=1) | 8 | 8 | 9 | L-BFGS-B | ~1e-4 Ha | ✓ |
+| H₂ (0.735 Å) | ADAPT-VQE | 2–6 | ~6 | ~10 | COBYLA | < 1e-5 Ha | ✓ |
+| LiH (1.6 Å) | UCCSD (tapered) | 12 | ~120 | ~80 | SPSA (2k shots) | ~2 mHa | ✓ |
+| TFIM (n=8, h=1) | Hardware-efficient (d=2) | 32 | 28 | 22 | COBYLA | < 1e-4 Ha | n/a |
+| H₂ + depolarising (p₂q=0.02) | Hardware-efficient | 8 | 8 | 9 | COBYLA | ~15 mHa (raw) | ✗ |
+| H₂ + depolarising (p₂q=0.02) | **+ ZNE (Richardson, ×3)** | 8 | 8 | 9 | COBYLA | **~2 mHa** | ✓ |
+
+> Barren-plateau diagnostics: for the hardware-efficient ansatz with a **global** cost, gradient variance decays exponentially with qubit count (∝ b⁻ⁿ, b ≈ 1.5–2), while **local** costs show polynomial decay — reproducing the classic Cerezo et al. (2021) separation.
+
+Run `pytest` to verify these numbers on your machine.
+
+---
+
+## Running tests
+
+```bash
+pip install -e ".[dev,chemistry]"
+pytest                # full suite with coverage report
+pytest -m "not slow"  # skip long benchmarks (LiH scans, n=10 spin chains)
+ruff check src tests  # linting
+mypy src              # strict type checking
+```
+
+Key acceptance tests:
+
+- ✅ H₂ UCCSD VQE reaches FCI within **1e-6 Ha**
+- ✅ Parameter-shift gradients match finite differences on a small circuit
+- ✅ ZNE improves the energy under depolarising noise
+
+---
+
+## Examples
+
+| Script | What it shows |
+|---|---|
+| [`examples/run_h2_vqe.py`](./examples/run_h2_vqe.py) | Minimal end-to-end VQE on H₂ |
+| [`examples/run_barren_plateau.py`](./examples/run_barren_plateau.py) | Gradient variance vs. qubits/depth |
+| [`examples/run_zne.py`](./examples/run_zne.py) | ZNE under depolarising noise |
+
+Or explore interactively:
+
+```bash
+jupyter notebook notebooks/01_h2_bond_scan.ipynb
+```
+
+---
+
+## Roadmap
+
+- [x] Phase 1 — architecture, config schema, CI
+- [x] Phase 2 — Hamiltonians + ansätze (+ tests)
+- [x] Phase 3 — optimisers + metrics + CLI (+ tests)
+- [x] Phase 4 — barren-plateau diagnostics (+ tests)
+- [x] Phase 5 — noise models + ZNE (+ tests)
+- [x] Phase 6 — plots, notebooks, docs, README
+- [ ] Qiskit 2.x support
+- [ ] ADAPT-VQE with qubit-excitation pool for spin models
+- [ ] Clifford Data Regression (CDR) mitigation
+
+---
+
+
+## License
+
+Released under the [MIT License](./LICENSE).
