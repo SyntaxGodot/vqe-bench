@@ -1,0 +1,31 @@
+experiment:
+  name: "h2_hardware_efficient"
+  seed: 42
+  output_dir: "results/h2_he"
+
+system:
+  type: molecule
+  molecule:
+    name: "H2"
+    basis: "sto-3g"
+    geometry: [["H", [0.0, 0.0, 0.0]], ["H", [0.0, 0.0, 0.735]]]
+    charge: 0
+    multiplicity: 1
+    mapping: jordan_wigner
+    tapering: false
+
+ansatz:
+  type: hardware_efficient
+  depth: 1
+  entanglement: linear
+
+optimizer:
+  method: lbfgsb
+  maxiter: 300
+  num_restarts: 3
+
+backend:
+  type: aer_statevector
+  noise: null
+
+mitigation: null
