@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use vqe-bench in your research, please cite it as below."
+title: "vqe-bench: Variational Quantum Eigensolver Benchmark Suite"
+authors:
+  - family-names: "Zitouni"
+    given-names: "Nidhal"
+    affiliation: "Independent Researcher"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+  - family-names: "SyntaxGodot"
+    given-names: ""
+    affiliation: "Community Contributor"
+version: "0.2.0"
+date-released: "2024-05-20"
+license: "MIT"
+repository-code: "https://github.com/SyntaxGodot/vqe-bench"
+keywords:
+  - quantum computing
+  - VQE
+  - variational quantum eigensolver
+  - quantum chemistry
+  - qiskit
+  - benchmark
+abstract: >
+  A reproducible, publication-quality framework for comparing VQE ansätze,
+  optimisers, and error-mitigation strategies on small molecules and quantum
+  spin models.
