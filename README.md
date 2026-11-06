@@ -203,22 +203,24 @@ Configs are validated with **pydantic** — unknown keys are rejected, cross-fie
 
 ```
 vqe-bench/
-├── configs/                  # one YAML per experiment (9 examples)
+├── configs/                  # YAML experiment configurations
 ├── src/vqe_bench/
-│   ├── hamiltonians/         # molecules (PySCF) + spin models + exact diagonalisation
-│   ├── ansatze/              # hardware-efficient, UCCSD, ADAPT-VQE
-│   ├── optimizers/           # COBYLA, SPSA, L-BFGS-B (unified interface)
-│   ├── metrics/              # energy errors, chemical accuracy, success rate
-│   ├── diagnostics/          # parameter-shift gradients, gradient variance
-│   ├── noise/                # depolarising / T1-T2 / readout noise models
-│   ├── mitigation/           # unitary folding + ZNE factories
-│   ├── visualization/        # publication-quality figures
-│   ├── cli/                  # `vqe-bench run`
-│   ├── vqe.py                # VQE driver loop
-│   └── runner.py             # config → experiments → results
-├── tests/                    # unit tests for every module
-├── examples/                 # runnable Python scripts
-├── notebooks/                # 4 tutorial notebooks
+│   ├── ansatze/              # HE, UCCSD, ADAPT-VQE
+│   ├── diagnostics/          # Parameter-shift gradients
+│   ├── hamiltonians/         # Molecules (PySCF) + Spin models
+│   ├── metrics/              # Energy errors + Quantum metrics (Ruggedness)
+│   ├── mitigation/           # Unitary folding + ZNE
+│   ├── noise/                # Depolarising / Thermal / Readout models
+│   ├── optimizers/           # COBYLA, SPSA, L-BFGS-B
+│   ├── reporting/            # Automated HTML dashboards (NEW)
+│   ├── utils/                # Logger, Validation, Telemetry, Caching (NEW)
+│   ├── visualization/        # Publication-quality figures
+│   ├── cli/                  # `vqe-bench run` entry point
+│   ├── vqe.py                # Core VQE driver loop
+│   └── runner.py             # config → experiments → results pipeline
+├── tests/                    # Comprehensive pytest suite
+├── examples/                 # Runnable Python scripts
+├── notebooks/                # Jupyter tutorial notebooks
 └── docs/                     # Sphinx documentation
 ```
 
