@@ -2,7 +2,7 @@
 
 import pytest
 import numpy as np
-from vqe_bench.hamiltonians.spins import build_spin_hamiltonian, exact_ground_state
+from vqe_bench.hamiltonians.spin_models import build_spin_hamiltonian, exact_ground_state
 
 def test_tfim_ground_state_analytical():
     # For n=2, J=1, h=1, H = -Z0Z1 - X0 - X1. Ground energy = -2.0

@@ -1,7 +1,7 @@
 """Tests for Zero-Noise Extrapolation."""
 
 import pytest
-from vqe_bench.mitigation.zne import zne_extrapolate
+from vqe_bench.mitigation.extrapolation import zne_extrapolate
 from vqe_bench.mitigation.folding import fold_circuit_global, fold_circuit_local
 from qiskit import QuantumCircuit
 

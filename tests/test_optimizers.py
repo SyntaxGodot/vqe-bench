@@ -2,7 +2,7 @@
 
 import numpy as np
 from vqe_bench.optimizers.scipy_optimizers import CobylaOptimizer, LBFGSBOptimizer
-from vqe_bench.optimizers.spsa import SPSAOptimizer
+from vqe_bench.optimizers.spsa_optimizer import SPSAOptimizer
 
 def _quadratic(x: np.ndarray) -> float:
     return float(np.sum((x - 1.0) ** 2))

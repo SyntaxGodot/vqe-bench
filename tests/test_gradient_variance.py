@@ -1,7 +1,7 @@
 """Tests for barren plateau gradient variance diagnostics."""
 
 import numpy as np
-from vqe_bench.diagnostics.gradients import gradient_variance
+from vqe_bench.diagnostics.gradient_variance import gradient_variance
 from vqe_bench.ansatze.hardware_efficient import HardwareEfficientAnsatz
 from vqe_bench.hamiltonians.spins import build_spin_hamiltonian
 

@@ -2,7 +2,7 @@
 
 import numpy as np
 from qiskit.quantum_info import SparsePauliOp
-from vqe_bench.diagnostics.gradients import parameter_shift_gradient
+from vqe_bench.diagnostics.parameter_shift import parameter_shift_gradient
 from vqe_bench.ansatze.hardware_efficient import HardwareEfficientAnsatz
 
 def test_parameter_shift_exact_identity():

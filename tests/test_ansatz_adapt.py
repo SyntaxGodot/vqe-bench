@@ -1,7 +1,7 @@
 """Tests for the ADAPT-VQE ansatz."""
 
 import pytest
-from vqe_bench.ansatze.adapt import ADAPTAnsatz
+from vqe_bench.ansatze.adapt_vqe import ADAPTAnsatz
 
 def test_adapt_initialization(simple_hamiltonian):
     ansatz = ADAPTAnsatz(simple_hamiltonian, threshold=1e-2, max_operators=5)
