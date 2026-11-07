@@ -1,7 +1,6 @@
-"""vqe-bench: Variational Quantum Eigensolver Benchmark Suite."""
+"""Barren-plateau diagnostics."""
 
-__version__ = "0.1.0"
+from vqe_bench.diagnostics.parameter_shift import parameter_shift_gradient
+from vqe_bench.diagnostics.gradient_variance import gradient_variance
 
-from vqe_bench.vqe import VQEResult, run_vqe
-
-__all__ = ["__version__", "VQEResult", "run_vqe"]
+__all__ = ["parameter_shift_gradient", "gradient_variance"]
