@@ -11,6 +11,5 @@
 
 If you discover a security issue, please **do not** open a public issue.
 Instead, email the maintainers directly at:
-- security@example.com
 
 We will respond within 72 hours and work with you to disclose responsibly.
